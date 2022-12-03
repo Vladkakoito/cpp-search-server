@@ -1,4 +1,184 @@
-﻿// Решите загадку: Сколько чисел от 1 до 1000 содержат как минимум одну цифру 3?
-// Напишите ответ здесь: 100
-// Если цифру "3" назвать числом
-// Закомитьте изменения и отправьте их в свой репозиторий.
+﻿#include <algorithm>
+#include <iostream>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+#include <map>
+#include <cmath>
+
+using namespace std;
+
+const int MAX_RESULT_DOCUMENT_COUNT = 5;
+
+//считать строку
+string ReadLine() {
+    string s;
+    getline(cin, s);
+    return s;
+}
+
+//считать строку с количеством документиов
+int ReadLineWithNumber() {
+    int result = 0;
+    cin >> result;
+    ReadLine();
+    return result;
+}
+
+//разбить строку на слова
+vector<string> SplitIntoWords(const string& text) {
+    vector<string> words;
+    string word;
+    for (const char c : text) {
+        if (c == ' ') {
+            if (!word.empty()) {
+                words.push_back(word);
+                word.clear();
+            }
+        } else {
+            word += c;
+        }
+    }
+    if (!word.empty()) {
+        words.push_back(word);
+    }
+
+    return words;
+}
+
+//структура для хранения релевантности документов
+struct Document {
+    int id;
+    double relevance;
+};
+
+
+class SearchServer {
+public:
+    
+    //формирование множества стоп-слов
+    void SetStopWords(const string& text) {
+        for (const string& word : SplitIntoWords(text)) {
+            stop_words_.insert(word);
+        }
+    }
+    
+    //добавление в словарь слов ID документа, и подсчет TF его слов
+    void AddDocument(int document_id, const string& document) {
+        if (document.empty()) return;
+        const vector<string> words = SplitIntoWordsNoStop(document);
+        double fract = 1.0/words.size();
+        for (const string& word : words) {
+            documents_[word][document_id] += fract;           
+        }
+        ++document_count_;
+    }
+    
+    //сортировка найденых документов по релевантности, и поиск самых релевантных
+    vector<Document> FindTopDocuments(const string& raw_query) const {
+        const Query query_words = ParseQuery(raw_query);
+        auto matched_documents = FindAllDocuments(query_words);
+
+        sort(matched_documents.begin(), matched_documents.end(),
+             [](const Document& lhs, const Document& rhs) {
+                 return lhs.relevance > rhs.relevance;
+             });
+        if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
+            matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+        }
+        return matched_documents;
+    }
+
+private: 
+    map<string, map<int, double>> documents_; //хранение списка id документов и TF для каждого слова
+    set<string> stop_words_; //множество стоп-слов
+    int document_count_ = 0; //общее число документов. Нужно для подсчета IDF
+    
+    //структура для хранения слов запроса
+    struct Query {
+        set<string> plus;
+        set<string> minus;
+    };  
+    Query query_words;
+    
+    //проверка на наличие слова в множестве стоп-слов
+    bool IsStopWord(const string& word) const {
+        return stop_words_.count(word) > 0;
+    }
+
+    //разбивка строки на слова, вычитая стоп-слова
+    vector<string> SplitIntoWordsNoStop(const string& text) const {
+        vector<string> words;
+        for (const string& word : SplitIntoWords(text)) {
+            if (!IsStopWord(word)) {
+                words.push_back(word);
+            }
+        }
+        return words;
+    }
+
+    //формируем слова запроса, отдельно плюс и минус слова
+    Query ParseQuery(const string& text) const {
+        Query query_words;
+        for (const string& word : SplitIntoWordsNoStop(text)) {
+            if (word[0] == '-') {
+                query_words.minus.insert(word.substr(1)); 
+            } else {
+                query_words.plus.insert(word);
+            }      
+        }
+        return query_words;
+    }
+
+    //поиск документов по запросу, подсчет релевантности
+    vector<Document> FindAllDocuments(const Query& query_words) const {
+        vector<Document> matched_documents;
+        map<int, double> relevance;
+        
+        //считаем релевантность каждого документа по плюс словам
+        for (const string& word : query_words.plus) {
+            if (!documents_.count(word)) continue;
+            double idf = log((double)document_count_ / documents_.at(word).size());
+            for (const auto& [id, tf] : documents_.at(word)) {
+                relevance[id] += idf * tf;
+            }
+        }
+        
+        //удаляем документы с минус-словами
+        for (const string& word : query_words.minus) {
+            if (!documents_.count(word)) continue;
+            for (const auto& [id, tf] : documents_.at(word)) {
+                relevance.erase(id);
+            }
+        }
+        
+        //формируем вектор релевантности документов
+        for (const auto& [id, tf_idf] : relevance) {
+            matched_documents.push_back({id, tf_idf});
+        }
+        return matched_documents;
+    }
+};
+
+//добавляем все документы
+SearchServer CreateSearchServer() {
+    SearchServer search_server;
+    search_server.SetStopWords(ReadLine());
+
+    const int document_count = ReadLineWithNumber();
+    for (int document_id = 0; document_id < document_count; ++document_id) {
+        search_server.AddDocument(document_id, ReadLine());
+    }
+
+    return search_server;
+}
+
+int main() {
+    const SearchServer search_server = CreateSearchServer();    
+    const string query = ReadLine();
+    for (const auto& [document_id, relevance] : search_server.FindTopDocuments(query)) {
+        cout << "{ document_id = "s << document_id << ", "
+             << "relevance = "s << relevance << " }"s << endl;
+    }
+}
