@@ -117,6 +117,11 @@ private:
         }
         return words;
     }
+    
+    //подсчет IDF
+    double CalcIdf(double size) const {
+        return log(document_count_ / size);
+    }
 
     //формируем слова запроса, отдельно плюс и минус слова
     Query ParseQuery(const string& text) const {
@@ -139,7 +144,7 @@ private:
         //считаем релевантность каждого документа по плюс словам
         for (const string& word : query_words.plus) {
             if (!documents_.count(word)) continue;
-            double idf = log((double)document_count_ / documents_.at(word).size());
+            double idf = CalcIdf(documents_.at(word).size());
             for (const auto& [id, tf] : documents_.at(word)) {
                 relevance[id] += idf * tf;
             }
