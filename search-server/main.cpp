@@ -84,10 +84,8 @@ public:
     explicit SearchServer(const StringContainer& stop_words)
         : stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
         for (const string& word : stop_words_) {
-            for (char c : word) {
-                if ((c >= 0) && (c <= 31)) {
-                    throw invalid_argument("Special char in stop word"s);
-                }
+            if (!CheckSpecialCharInText(word)) {
+                throw invalid_argument("Special char in stop word"s);
             }
         }
     }
