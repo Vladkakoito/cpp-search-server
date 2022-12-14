@@ -97,14 +97,14 @@ public:
     void AddDocument(int document_id, const string& document, DocumentStatus status,
                      const vector<int>& ratings) {
 
-        if (!CheckSpecialCharInText(document)) {
-            throw invalid_argument("Special char in document");
-        }
         if (document_id < 0) {
             throw invalid_argument("Negative document ID");
         }
         if (documents_.count(document_id)) {
             throw invalid_argument("Document with this ID already exists");
+        }
+        if (!CheckSpecialCharInText(document)) {
+            throw invalid_argument("Special char in document");
         }
 
         const vector<string> words = SplitIntoWordsNoStop(document);
@@ -113,18 +113,12 @@ public:
             word_to_document_freqs_[word][document_id] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
+        id_by_addition_.push_back(document_id);
     }
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query,
                                       DocumentPredicate document_predicate) const {
-        
-        if (!CheckSpecialCharInText(raw_query)) {
-            throw invalid_argument("Special char in search query"s);
-        }
-        if (!CheckCorrectCharAfterMinusInTextQuery(raw_query)) {
-            throw invalid_argument("Incorrect word after '-'"s);
-        }
 
         const Query query = ParseQuery(raw_query);
         vector<Document> result = FindAllDocuments(query, document_predicate);
@@ -166,12 +160,6 @@ public:
         if (!documents_.count(document_id)) {
             throw invalid_argument("Document with this ID not found"s);
         }
-        if (!CheckSpecialCharInText(raw_query)) {
-            throw invalid_argument("Special char in search query"s);
-        }
-        if (!CheckCorrectCharAfterMinusInTextQuery(raw_query)) {
-            throw invalid_argument("Incorrect word after '-'"s);
-        }
 
         const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
@@ -199,13 +187,10 @@ public:
         if (index < 0) {
             throw out_of_range("Negative index"s);
         }
-        for (const auto& [id, _] : documents_) {
-            if (index == 0) {
-                return id;
-            }
-            --index;
+        if (index > static_cast<int>(id_by_addition_.size())) {
+            throw out_of_range("Index exceeds the number of documents"s);
         }
-        throw out_of_range("Index exceeds the number of documents"s);
+        return id_by_addition_[index];
     }
 
 private:
@@ -216,6 +201,7 @@ private:
     const set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
+    vector<int> id_by_addition_;
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -253,6 +239,12 @@ private:
         if (text[0] == '-') {
             is_minus = true;
             text = text.substr(1);
+            if (!CheckCorrectMinusWord(text)) {
+                throw invalid_argument("Incorrect word after '-'"s);
+            }
+        }
+        if (!CheckSpecialCharInText(text)) {
+            throw invalid_argument("Special char in search query"s);
         }
         return {text, is_minus, IsStopWord(text)};
     }
@@ -324,16 +316,12 @@ private:
         return true;
     }
 
-    bool CheckCorrectCharAfterMinusInTextQuery(const string& text) const {
-        int i = 0;
-        for (char c : text) {
-            if ((c == '-') && ((i + 1 == static_cast<int>(text.size())) || (text[i+1] == ' ') || (text[i+1] == '-'))) {
-                return false;
-            }
-            ++i;
+    bool CheckCorrectMinusWord(const string& text) const {
+
+        if ((text == ""s) || (text[0] == '-') || (text.back() == '-')) {
+            return false;
         }
         return true;
     }
 };
-
-int main() {}   
+ 
