@@ -27,12 +27,6 @@ private:
     Iterator end_;
 };
 
-std::ostream& operator<< (std::ostream& os, Document element) {
-    os << "{ document_id = "s << element.id << ", relevance = "s << element.relevance;
-    os << ", rating = "s << element.rating << " }"s;
-    return os;
-}
-
 template<typename Iterator>
 std::ostream& operator<< (std::ostream& os, const IteratorRange<Iterator>& page) {
     for (auto i = page.begin(); i != page.end(); advance(i, 1)) {

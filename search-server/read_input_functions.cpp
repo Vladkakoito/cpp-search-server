@@ -1,4 +1,4 @@
-#include "read_input_function.h"
+#include "read_input_functions.h"
 #include <iostream>
 
 std::string ReadLine() {

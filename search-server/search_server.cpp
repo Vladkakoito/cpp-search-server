@@ -17,9 +17,10 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
     const double inv_word_count = 1.0 / words.size();
     for (const std::string& word : words) {
         word_to_document_freqs_[word][document_id] += inv_word_count;
+        documents_words_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
-    id_by_addition_.push_back(document_id);
+    documents_id_.push_back(document_id);
 }
 
 int SearchServer::GetDocumentCount() const {
@@ -57,19 +58,26 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
     return {matched_words, documents_.at(document_id).status};
 } 
 
-int SearchServer::GetDocumentId(int index) const {
-    if (index < 0) {
-        throw std::out_of_range("Negative index"s);
+const std::map<std::string, double>& SearchServer::GetWordFrequencies (int document_id) const {
+    if (documents_words_.count(document_id)) {
+        return documents_words_.at(document_id);
     }
-    if (index > static_cast<int>(id_by_addition_.size())) {
-        throw std::out_of_range("Index exceeds the number of documents"s);
+    return empty_;
+}
+
+ void SearchServer::RemoveDocument(int document_id) {
+    for (auto& [_, docs] : word_to_document_freqs_) {
+        docs.erase(document_id);
     }
-    return id_by_addition_[index];
+    documents_words_.erase(document_id);
+    documents_id_.erase(std::remove(documents_id_.begin(), documents_id_.end(), document_id), documents_id_.end());
+    documents_.erase(document_id);
 }
 
 bool SearchServer::IsStopWord(const std::string& word) const {
     return stop_words_.count(word) > 0;
 }
+
 
 std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& text) const {
     std::vector<std::string> words;
@@ -141,3 +149,7 @@ bool SearchServer::CheckCorrectMinusWord(const std::string& text) const {
     }
     return true;
 }
+
+
+
+

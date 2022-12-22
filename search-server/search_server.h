@@ -7,14 +7,16 @@
 #include <set>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 #include "string_processing.h"
 #include "document.h"
 
+using namespace std::string_literals;
+
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double INNACURATE = 1e-6;
 
-using namespace std::string_literals;
 
 class SearchServer {
 public:
@@ -42,7 +44,20 @@ public:
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
-    int GetDocumentId(int index) const;
+    auto begin() const {
+        return documents_id_.begin();
+    }
+
+    auto end() const {
+        return documents_id_.end();
+    }
+
+    const std::map<std::string, double>& GetWordFrequencies (int document_id) const;
+
+    void RemoveDocument(int document_id);
+
+    bool IsEqualDocuments(int id_1, int id_2) const;
+
 
 private:
     struct DocumentData {
@@ -52,7 +67,9 @@ private:
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
-    std::vector<int> id_by_addition_;
+    std::vector<int> documents_id_;
+    std::map<int, std::map<std::string, double>> documents_words_;
+    const std::map<std::string, double> empty_ = {};
 
     bool IsStopWord(const std::string& word) const;
 
@@ -83,6 +100,7 @@ private:
     bool CheckSpecialCharInText(const std::string& text) const;
 
     bool CheckCorrectMinusWord(const std::string& text) const;
+
 };
 
 template <typename StringContainer>
