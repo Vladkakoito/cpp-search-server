@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdlib.h>
 
 #include "paginator.h"
 #include "read_input_functions.h"

@@ -56,8 +56,6 @@ public:
 
     void RemoveDocument(int document_id);
 
-    bool IsEqualDocuments(int id_1, int id_2) const;
-
 
 private:
     struct DocumentData {
@@ -67,9 +65,8 @@ private:
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
-    std::vector<int> documents_id_;
+    std::set<int> documents_id_;
     std::map<int, std::map<std::string, double>> documents_words_;
-    const std::map<std::string, double> empty_ = {};
 
     bool IsStopWord(const std::string& word) const;
 
