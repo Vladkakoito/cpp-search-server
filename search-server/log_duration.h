@@ -8,7 +8,7 @@
 #define PROFILE_CONCAT_INTERNAL(X, Y) X ## Y
 #define PROFILE_CONCAT(X, Y) PROFILE_CONCAT_INTERNAL(X, Y)
 #define UNIQUE_VAR_NAME_PROFILE PROFILE_CONCAT(profileGuard, __LINE__)
-#define LOG_DURATION(x) LogDuration UNIQUE_VAR_NAME_PROFILE(x) 
+#define LOG_DURATION(x) LogDuration UNIQUE_VAR_NAME_PROFILE(static_cast<std::string>(x)) 
 #define LOG_DURATION_STREAM(x, y) LogDuration UNIQUE_VAR_NAME_PROFILE (x, y)
 
 using namespace std::string_literals;
@@ -36,7 +36,3 @@ private:
     std::ostream& os = std::cerr;
     std::string text_ = "";
 };
-
-void MatchDocument(SearchServer& server, std::string raw_query, int document_id);
-
-void FindTopDocuments(SearchServer& server, std::string raw_query);
